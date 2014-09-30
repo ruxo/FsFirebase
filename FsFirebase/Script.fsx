@@ -4,7 +4,10 @@
 #load "FsFirebase.fs"
 open FsFirebase
 
-printfn "Start!!"
+let sample = [ "user", [ "name", "Alan Turing"
+                       ; "birthday", "Jun 23, 1912"
+                       ]
+             ]
 
 let url = "https://a7knbwy6th8.firebaseio-demo.com/user.json"
 let data = """{ "someone": { "name": "Alan Turing", "birthday": "June 23, 1912" } }"""
