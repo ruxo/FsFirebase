@@ -1,8 +1,3 @@
-﻿// Learn more about F# at http://fsharp.org. See the 'F# Tutorial' project
-// for more guidance on F# programming.
+﻿System.IO.Directory.SetCurrentDirectory __SOURCE_DIRECTORY__
 
-#load "Library1.fs"
-open FsFirebaseTest
-
-// Define your library scripting code here
 
