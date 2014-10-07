@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>a3134f2f-31e0-4123-a148-2ab5d27595aa</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <RootNamespace>FsFirebaseTest</RootNamespace>
     <AssemblyName>FsFirebaseTest</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
@@ -18,7 +18,8 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\bin\Test\Debug\</OutputPath>
+    <IntermediateOutputPath>..\obj\Test\Debug\</IntermediateOutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\FsFirebaseTest.XML</DocumentationFile>
@@ -27,7 +28,8 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\bin\Test\Release\</OutputPath>
+    <IntermediateOutputPath>..\obj\Test\Release\</IntermediateOutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Release\FsFirebaseTest.XML</DocumentationFile>
@@ -51,25 +53,12 @@
   <ItemGroup>
     <Compile Include="FsFirebaseTest.fs" />
     <Compile Include="AssemblyInfo.fs" />
-    <None Include="Script.fsx" />
     <Content Include="packages.config" />
     <Content Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="FsCheck">
-      <HintPath>..\packages\FsCheck.1.0.0\lib\net45\FsCheck.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="FsUnit.NUnit">
       <HintPath>..\packages\FsUnit.1.3.0.1\Lib\Net40\FsUnit.NUnit.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Fuchu">
-      <HintPath>..\packages\Fuchu.0.4.0.0\lib\Fuchu.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Fuchu.FsCheck">
-      <HintPath>..\packages\Fuchu.FsCheck.0.4.0.0\lib\Fuchu.FsCheck.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
