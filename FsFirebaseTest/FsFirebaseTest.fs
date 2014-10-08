@@ -23,3 +23,5 @@ let [<Fact>] ``Object with array value, the order should be preserved`` () =
                       ]
     |> should equal """{"key":["A","B","C"],"value":[1,2,3]}"""
 
+let [<Fact>] ``Serialize an object with null``() =
+    Json.fromKeyPairs ["somekey", JObject None] |> should equal """{"somekey":null}"""

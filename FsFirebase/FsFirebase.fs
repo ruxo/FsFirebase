@@ -29,7 +29,7 @@ module Json =
                                      |> List.map (fun el -> _jsonTokenize el :> obj)
                                      |> List.toArray
                                     ) :> JToken
-        | JObject None -> JToken.FromObject null
+        | JObject None -> null
         | JObject (Some pairs) -> new JObject( pairs
                                                |> List.map (fun (k,v) -> new JProperty(k, _jsonTokenize v) :> obj)
                                                |> List.toArray
