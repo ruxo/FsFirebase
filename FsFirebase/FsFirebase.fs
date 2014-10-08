@@ -71,6 +71,8 @@ let getAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.GetAsync(st
 
 let putAsync (url:FirebaseUrl) data = _requestAsync (fun client -> client.PutAsync(string url, new StringContent(data)))
 
+let putTimestamp url = putAsync url """{".sv":"timestamp"}"""
+
 let patchAsync (url:FirebaseUrl) data =
     _requestAsync (fun client -> let msg = new HttpRequestMessage(new HttpMethod("PATCH"), string url, Content=new StringContent(data))
                                  in client.SendAsync(msg))

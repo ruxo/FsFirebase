@@ -17,6 +17,7 @@ let sample =
     Json.fromKeyPairs
         [ "001", Json.jObject [ "name", JString "Alan Turing"
                                 "birthday", JString "Jun 23, 1912"
+                                "time", JObject None
                               ]
         ]
 run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
@@ -31,3 +32,5 @@ run "getAsync 001/quotes.json" <| getAsync (FirebaseUrl "https://a7knbwy6th8.fir
 run "delete" <| deleteAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/temp.json")
 
 run "test auth should fail" <| getAsync (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json", "DUMMY"))
+
+run "put timestamp" <| putTimestamp (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/time.json")
