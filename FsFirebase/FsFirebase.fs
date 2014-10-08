@@ -55,7 +55,14 @@ type FirebaseUrl(url, ?auth, ?pretty) =
                                                  |> List.map (fun (k,v) -> sprintf "%s=%s" (Uri.EscapeUriString(k)) (Uri.EscapeUriString(v)))
                                 in sprintf "%s?%s" (string uri) (String.concat "&" paramTexts)
 
-type FirebaseResult = Choice<string, (int * string)>
+type FirebaseReturnCode =
+    | OK = 200
+    | NotFound = 404
+    | BadRequest = 400
+    | ExpectationFailed = 417
+    | Forbidden = 403
+
+type FirebaseResult = Choice<string, (FirebaseReturnCode * string)>
 
 let private _requestAsync f =
     async {
@@ -64,7 +71,7 @@ let private _requestAsync f =
         let! content = Async.AwaitTask <| response.Content.ReadAsStringAsync()
         return match response.IsSuccessStatusCode with
                | true -> Choice1Of2 content
-               | false -> Choice2Of2 (int response.StatusCode, content)
+               | false -> Choice2Of2 (enum<FirebaseReturnCode>(int response.StatusCode), content)
     }
 
 let getAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.GetAsync(string url))

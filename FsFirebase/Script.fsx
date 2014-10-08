@@ -10,7 +10,7 @@ let run title fasync =
         let! (result: FirebaseResult) = fasync
         match result with
         | Choice1Of2 r -> printfn "Response = %s" r
-        | Choice2Of2 (code, msg) -> printfn "Put failed with %d: %s" code msg
+        | Choice2Of2 (code, msg) -> printfn "Put failed with %A: %s" code msg
     } |> Async.RunSynchronously
 
 let sample =
