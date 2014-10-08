@@ -18,7 +18,7 @@ module Json =
         json.[key] <- JToken.FromObject(value)
         json
     let fromObj o = JsonConvert.SerializeObject (o:obj)
-    let createJObject pairs = JSON.JObject (Some pairs)
+    let jObject pairs = JSON.JObject (Some pairs)
     let rec private _jsonTokenize = function
         | JString s -> JToken.op_Implicit s
         | JNumber n -> if n = Decimal.Truncate n
@@ -34,17 +34,23 @@ module Json =
                                                |> List.toArray
                                              ) :> JToken
     let fromKeyPairs pairs = 
-        let token = _jsonTokenize <| createJObject pairs
+        let token = _jsonTokenize <| jObject pairs
         token.ToString(Formatting.None)
 
-let putAsync(url:string, data) =
-    let json = new StringContent(data)
+type FirebaseResult = Choice<string, (int * string)>
 
+let private _requestAsync f =
     async {
         use client = new HttpClient()
-        let! response = Async.AwaitTask <| client.PutAsync(url, json)
+        let! (response :HttpResponseMessage) = Async.AwaitTask <| f client
         let! content = Async.AwaitTask <| response.Content.ReadAsStringAsync()
         return match response.IsSuccessStatusCode with
                | true -> Choice1Of2 content
                | false -> Choice2Of2 (int response.StatusCode, content)
     }
+
+let putAsync (url:string) data = _requestAsync (fun client -> client.PutAsync(url, new StringContent(data)))
+
+let patchAsync (url:string) data =
+    _requestAsync (fun client -> let msg = new HttpRequestMessage(new HttpMethod("PATCH"), url, Content=new StringContent(data))
+                                 in client.SendAsync(msg))
