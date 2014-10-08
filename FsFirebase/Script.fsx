@@ -24,3 +24,8 @@ run "putAsync" <| putAsync "https://a7knbwy6th8.firebaseio-demo.com/users.json" 
 
 run "patchAsync" <| patchAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001.json"
                                (Json.fromKeyPairs ["author", JString "RZ"])
+
+run "postAsync" <| postAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json" "\"A nice quote!\""
+run "postAsync" <| postAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json" "\"Another Quote!\""
+
+run "getAsync 001/quotes.json" <| getAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json"
