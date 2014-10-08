@@ -38,17 +38,20 @@ module Json =
         let token = _jsonTokenize <| jObject pairs
         token.ToString(Formatting.None)
 
-type FirebaseUrl(url, ?auth, ?pretty) =
+type FirebaseUrl(url, ?auth, ?pretty, ?shallow, ?priority) =
     let uri = Uri(url)
+    let boolParameter flag v p = match defaultArg flag false with
+                                 | false -> p
+                                 | true -> v::p
 
     let getAuth p = match defaultArg auth "" with
                     | "" -> p
                     | txt -> ("auth", txt)::p
-    let getPretty p = match defaultArg pretty false with
-                      | false -> p
-                      | true -> ("print", "pretty")::p
+    let getPretty = boolParameter pretty ("print", "pretty")
+    let getShallow = boolParameter shallow ("shallow", "true")
+    let getPriority = boolParameter priority ("format", "export")
 
-    override x.ToString() = match (getAuth >> getPretty) [] with
+    override x.ToString() = match (getAuth >> getPretty >> getShallow >> getPriority) [] with
                             | [] -> url
                             | pairs ->
                                 let paramTexts = pairs
@@ -63,6 +66,15 @@ type FirebaseReturnCode =
     | Forbidden = 403
 
 type FirebaseResult = Choice<string, (FirebaseReturnCode * string)>
+
+[<RequireQualifiedAccess>]
+module FirebaseKeyMaker =
+    let priority n = ".priority", JNumber n
+    /// <summary>
+    /// Set primitive value and its priority value.
+    /// </summary>
+    /// <remark>https://www.firebase.com/docs/rest/guide/retrieving-data.html</remark>
+    let priorityPrimitive n v = Json.jObject [".value", v; priority n]
 
 let private _requestAsync f =
     async {
