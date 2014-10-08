@@ -57,4 +57,6 @@ let patchAsync (url:string) data =
     _requestAsync (fun client -> let msg = new HttpRequestMessage(new HttpMethod("PATCH"), url, Content=new StringContent(data))
                                  in client.SendAsync(msg))
 
-let postAsync (url:string) data =_requestAsync (fun client -> client.PostAsync(url, new StringContent(data)))
+let postAsync (url:string) data = _requestAsync (fun client -> client.PostAsync(url, new StringContent(data)))
+
+let deleteAsync (url:string) = _requestAsync (fun client -> client.DeleteAsync(url))
