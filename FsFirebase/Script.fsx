@@ -19,13 +19,15 @@ let sample =
                                 "birthday", JString "Jun 23, 1912"
                               ]
         ]
-run "putAsync" <| putAsync "https://a7knbwy6th8.firebaseio-demo.com/users.json" sample
+run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
 
-run "patchAsync" <| patchAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001.json"
+run "patchAsync" <| patchAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001.json")
                                (Json.fromKeyPairs ["author", JString "RZ"; "temp", JString "dummy"])
-run "postAsync" <| postAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json" "\"A nice quote!\""
-run "postAsync" <| postAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json" "\"Another Quote!\""
+run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"A nice quote!\""
+run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"Another Quote!\""
 
-run "getAsync 001/quotes.json" <| getAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json"
+run "getAsync 001/quotes.json" <| getAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json")
 
-run "delete" <| deleteAsync "https://a7knbwy6th8.firebaseio-demo.com/users/001/temp.json"
+run "delete" <| deleteAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/temp.json")
+
+run "test auth should fail" <| getAsync (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json", "DUMMY"))
