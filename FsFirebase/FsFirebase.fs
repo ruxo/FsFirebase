@@ -1,5 +1,6 @@
 ﻿module FsFirebase
 
+open System
 open System.Net.Http
 open Newtonsoft.Json
 
@@ -36,6 +37,23 @@ module Json =
     let fromKeyPairs pairs = 
         let token = _jsonTokenize <| jObject pairs
         token.ToString(Formatting.None)
+
+type FirebaseUrl(url, ?auth, ?pretty) =
+    let uri = Uri(url)
+
+    let getAuth p = match defaultArg auth "" with
+                    | "" -> p
+                    | txt -> ("auth", txt)::p
+    let getPretty p = match defaultArg pretty false with
+                      | false -> p
+                      | true -> ("print", "pretty")::p
+
+    override x.ToString() = match (getAuth >> getPretty) [] with
+                            | [] -> url
+                            | pairs ->
+                                let paramTexts = pairs
+                                                 |> List.map (fun (k,v) -> sprintf "%s=%s" (Uri.EscapeUriString(k)) (Uri.EscapeUriString(v)))
+                                in sprintf "%s?%s" (string uri) (String.concat "&" paramTexts)
 
 type FirebaseResult = Choice<string, (int * string)>
 

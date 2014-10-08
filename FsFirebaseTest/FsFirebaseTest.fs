@@ -1,24 +1,25 @@
-﻿module FsFirebaseTest.Tests
+﻿module FsFirebaseTest.Tests.Json
 
-open NUnit.Framework
-open FsUnit
+open Xunit
+open FsUnit.Xunit
 open FsFirebase
 
-let [<Test>] ``When serializing a list of int into JSON`` () =
+let [<Fact>] ``When serializing a list of int into JSON`` () =
     Json.fromObj [1;2;3;4;5] |> should equal "[1,2,3,4,5]"
 
 type SomeRecord = {key:string; value: obj}
-let [<Test>] ``Given a record, fromObj should return correct JSON`` () =
+let [<Fact>] ``Given a record, fromObj should return correct JSON`` () =
     Json.fromObj {key="A"; value=99} |> should equal """{"key":"A","value":99}"""
 
-let [<Test>] ``Given a list of key pairs, fromKeyPairs should return a correct JSON text`` () =
+let [<Fact>] ``Given a list of key pairs, fromKeyPairs should return a correct JSON text`` () =
     Json.fromKeyPairs [ "key", JString "A"
                         "value", JNumber 99m
                       ]
     |> should equal """{"key":"A","value":99}"""
 
-let [<Test>] ``Object with array value, the order should be preserved`` () =
+let [<Fact>] ``Object with array value, the order should be preserved`` () =
     Json.fromKeyPairs [ "key", JArray [JString "A"; JString "B"; JString "C"]
                         "value", JArray [JNumber 1m; JNumber 2m; JNumber 3m]
                       ]
     |> should equal """{"key":["A","B","C"],"value":[1,2,3]}"""
+
