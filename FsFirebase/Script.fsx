@@ -2,6 +2,7 @@
 #r "Newtonsoft.json.dll"
 
 #load "FsFirebase.fs"
+
 open FsFirebase
 
 let run title fasync =
@@ -20,6 +21,11 @@ let sample =
                                 "time", JObject None
                               ]
         ]
+
+//let eventStream = FirebaseStream.createFrom (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/")
+//eventStream
+//|> Observable.subscribe (fun m -> printfn "Event: %s\nData: %s" m.Event m.Data)
+
 run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
 
 run "patchAsync" <| patchAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001.json")

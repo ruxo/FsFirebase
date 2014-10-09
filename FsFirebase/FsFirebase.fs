@@ -104,3 +104,67 @@ let patchAsync (url:FirebaseUrl) data =
 let postAsync (url:FirebaseUrl) data = _requestAsync (fun client -> client.PostAsync(string url, new StringContent(data)))
 
 let deleteAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.DeleteAsync(string url))
+
+module FirebaseStream =
+    open System.Net
+    open System.Net.Http.Headers
+
+    [<Literal>]
+    let TextEventStreamMime = "text/event-stream"
+
+    type EventMessage = { Event:string
+                          Data:string
+                          LastEvent:string
+                          Retry:int
+                        }
+    type State =
+        | Connecting
+        | Open of EventMessage
+        | Closed of (HttpStatusCode * string) option   // as an error message
+
+    type private EventStream() =
+        let subscriptionList = FsFirebaseUtils.MutableList<IObserver<State>>.empty        
+        interface IObservable<State> with
+            member x.Subscribe observer = subscriptionList.Add observer |> ignore
+                                          { new IDisposable with member x.Dispose() = subscriptionList.Remove observer |> ignore }
+
+        member x.Complete() = subscriptionList.Value |> List.iter (fun obs -> obs.OnCompleted())
+        member x.Push state = subscriptionList.Value |> List.iter (fun observer -> observer.OnNext state)
+
+    let createFrom (url:FirebaseUrl) =
+        let createEventSourceMessage() = 
+            let message = new HttpRequestMessage(HttpMethod.Get, FirebaseUrl.uri url)
+            message.Headers.Accept.Add (MediaTypeWithQualityHeaderValue TextEventStreamMime)
+            message.Headers.CacheControl <- CacheControlHeaderValue(NoCache=true)
+            message
+
+        let eventTracker = EventStream()
+
+        let failConnection (status, reason) =
+            eventTracker.Push <| Closed (Some (status, reason))
+            eventTracker.Complete()
+
+        async {
+            use client = new HttpClient()
+            let message = createEventSourceMessage()
+            eventTracker.Push Connecting
+
+            let! response = client.SendAsync(message) |> Async.AwaitTask
+            match response.StatusCode with
+            | HttpStatusCode.OK when response.Content.Headers.ContentType.MediaType = TextEventStreamMime -> 
+                //let! responseStream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
+                ()
+            | _ -> failConnection (response.StatusCode, response.ReasonPhrase)
+
+        } |> Async.Start
+        eventTracker :> IObservable<State>
+        (*
+        eventSource.EventReceived
+        |> Observable.map (fun arg -> { Event       =arg.Message.EventType
+                                        Data        =arg.Message.Data
+                                        LastEvent   =arg.Message.LastEventId
+                                        Retry       =if arg.Message.Retry.HasValue
+                                                         then arg.Message.Retry.Value
+                                                         else 0
+                                      })
+                                      *)
