@@ -39,7 +39,6 @@ module Json =
         token.ToString(Formatting.None)
 
 type FirebaseUrl(url, ?auth, ?pretty, ?shallow, ?priority) =
-    let uri = Uri(url)
     let boolParameter flag v p = match defaultArg flag false with
                                  | false -> p
                                  | true -> v::p
@@ -51,12 +50,18 @@ type FirebaseUrl(url, ?auth, ?pretty, ?shallow, ?priority) =
     let getShallow = boolParameter shallow ("shallow", "true")
     let getPriority = boolParameter priority ("format", "export")
 
-    override x.ToString() = match (getAuth >> getPretty >> getShallow >> getPriority) [] with
-                            | [] -> url
-                            | pairs ->
-                                let paramTexts = pairs
-                                                 |> List.map (fun (k,v) -> sprintf "%s=%s" (Uri.EscapeUriString(k)) (Uri.EscapeUriString(v)))
-                                in sprintf "%s?%s" (string uri) (String.concat "&" paramTexts)
+    let makeUri() = match (getAuth >> getPretty >> getShallow >> getPriority) [] with
+                    | [] -> url
+                    | pairs ->
+                        let paramTexts = pairs
+                                         |> List.map (fun (k,v) -> sprintf "%s=%s" (Uri.EscapeUriString(k)) (Uri.EscapeUriString(v)))
+                        in sprintf "%s?%s" url (String.concat "&" paramTexts)
+    
+    member x.Uri = Uri(makeUri())
+    override x.ToString() = string x.Uri
+
+    static member uri (url:FirebaseUrl) = url.Uri
+
 
 type FirebaseReturnCode =
     | OK = 200

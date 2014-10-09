@@ -6,7 +6,7 @@ open FsFirebase
 
 let [<Fact>] ``Ordinary URI should not cause any exception``() =
     let uri = FirebaseUrl("http://examples.com")
-    in (string uri) |> should equal "http://examples.com"
+    in (string uri) |> should equal "http://examples.com/"
 
 let [<Fact>] ``URI with authentication token``() =
     let uri = FirebaseUrl("http://examples.com", "ABCDEF")
