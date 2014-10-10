@@ -19,3 +19,8 @@ let [<Fact>] ``Pretty print request``() =
 let [<Fact>] ``URI with authentication token and pretty print`` () =
     let uri = FirebaseUrl("http://examples.com", "A12345", true)
     in (string uri) |> should equal "http://examples.com/?print=pretty&auth=A12345"
+
+let [<Fact>] ``Change location to http://google.com``() =
+    let uri = FirebaseUrl("http://examples.com", "A12345", true)
+    in string <| uri.ChangeLocation (System.Uri "http://google.com")
+       |> should equal "http://google.com/?print=pretty&auth=A12345"
