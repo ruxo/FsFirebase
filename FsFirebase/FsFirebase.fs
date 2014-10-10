@@ -114,6 +114,53 @@ module FirebaseStream =
     [<Literal>]
     let TextEventStreamMime = "text/event-stream"
 
+    type RetryType = Temporary | Permanent
+    type ConnectionResult =
+        | OK of IO.Stream
+        | Failed of HttpStatusCode * string
+        | Retry of FirebaseUrl * RetryType
+        | UseProxy of Uri
+        | RetryLater
+
+    let private __contentType (response:HttpResponseMessage) = response.Content.Headers.ContentType
+    let private __location (response:HttpResponseMessage) = response.Headers.Location
+
+    let createEventSourceMessage url lastEventId = 
+        let message = new HttpRequestMessage(HttpMethod.Get, FirebaseUrl.uri url)
+        message.Headers.Accept.Add (MediaTypeWithQualityHeaderValue TextEventStreamMime)
+        message.Headers.CacheControl <- CacheControlHeaderValue(NoCache=true)
+        if Option.isSome lastEventId
+            then message.Headers.Add("Last-Event-ID", Option.get<string> lastEventId)
+        message
+
+    let connectFirebaseStream (url:FirebaseUrl) message =
+        async {
+            use client = new HttpClient()
+
+            let! response = client.SendAsync(message) |> Async.AwaitTask
+            match response.StatusCode with
+            | HttpStatusCode.OK when (__contentType response).MediaType = TextEventStreamMime -> 
+                let! responseStream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
+                return OK responseStream
+            | HttpStatusCode.OK ->
+                return Failed (HttpStatusCode.OK, "Unrecognized content-type: " + (string <| __contentType response))
+            | HttpStatusCode.UseProxy ->
+                return UseProxy (__location response)
+            | HttpStatusCode.MovedPermanently ->
+                return Retry (url.ChangeLocation(__location response), Permanent)
+            | HttpStatusCode.Found
+            | HttpStatusCode.SeeOther
+            | HttpStatusCode.TemporaryRedirect ->
+                return Retry (url.ChangeLocation(__location response), Temporary)
+            | HttpStatusCode.InternalServerError
+            | HttpStatusCode.BadGateway
+            | HttpStatusCode.ServiceUnavailable
+            | HttpStatusCode.GatewayTimeout ->
+                return RetryLater
+            | _ ->
+                return Failed (response.StatusCode, response.ReasonPhrase)
+        }
+
     type EventMessage = { Event:string
                           Data:string
                           LastEvent:string
@@ -124,41 +171,15 @@ module FirebaseStream =
         | Open of EventMessage
         | Closed of (HttpStatusCode * string) option   // as an error message
 
-    type private EventStream() =
-        let subscriptionList = FsFirebaseUtils.MutableList<IObserver<State>>.empty        
-        interface IObservable<State> with
-            member x.Subscribe observer = subscriptionList.Add observer |> ignore
-                                          { new IDisposable with member x.Dispose() = subscriptionList.Remove observer |> ignore }
-
-        member x.Complete() = subscriptionList.Value |> List.iter (fun obs -> obs.OnCompleted())
-        member x.Push state = subscriptionList.Value |> List.iter (fun observer -> observer.OnNext state)
+    type private EventStream() = inherit FsFirebaseUtils.ObservableBase<State>()
 
     let createFrom (url:FirebaseUrl) =
-        let createEventSourceMessage() = 
-            let message = new HttpRequestMessage(HttpMethod.Get, FirebaseUrl.uri url)
-            message.Headers.Accept.Add (MediaTypeWithQualityHeaderValue TextEventStreamMime)
-            message.Headers.CacheControl <- CacheControlHeaderValue(NoCache=true)
-            message
-
         let eventTracker = EventStream()
 
         let failConnection (status, reason) =
             eventTracker.Push <| Closed (Some (status, reason))
             eventTracker.Complete()
 
-        async {
-            use client = new HttpClient()
-            let message = createEventSourceMessage()
-            eventTracker.Push Connecting
-
-            let! response = client.SendAsync(message) |> Async.AwaitTask
-            match response.StatusCode with
-            | HttpStatusCode.OK when response.Content.Headers.ContentType.MediaType = TextEventStreamMime -> 
-                //let! responseStream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
-                ()
-            | _ -> failConnection (response.StatusCode, response.ReasonPhrase)
-
-        } |> Async.Start
         eventTracker :> IObservable<State>
         (*
         eventSource.EventReceived
