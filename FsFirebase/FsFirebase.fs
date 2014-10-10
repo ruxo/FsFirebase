@@ -110,6 +110,7 @@ let deleteAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.DeleteAs
 module FirebaseStream =
     open System.Net
     open System.Net.Http.Headers
+    open FsFirebaseUtils
 
     [<Literal>]
     let TextEventStreamMime = "text/event-stream"
@@ -171,11 +172,7 @@ module FirebaseStream =
         | Open of EventMessage
         | Closed of (HttpStatusCode * string) option   // as an error message
 
-    type private EventStream() = inherit FsFirebaseUtils.ObservableBase<State>()
-
-    let createFrom (url:FirebaseUrl) =
-        let eventTracker = EventStream()
-
+    let createFrom (eventTracker:ObservableSource<State>) (url:FirebaseUrl) =
         let failConnection (status, reason) =
             eventTracker.Push <| Closed (Some (status, reason))
             eventTracker.Complete()
