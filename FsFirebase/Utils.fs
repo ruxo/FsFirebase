@@ -1,5 +1,6 @@
 ﻿module FsFirebaseUtils
 
+open System
 open System.Threading
 
 type MutableList<'item when 'item:equality>(init) =
@@ -21,3 +22,13 @@ type MutableList<'item when 'item:equality>(init) =
     static member add item (l:MutableList<'item>) = l.Add item
     static member get (l:MutableList<'item>) = l.Value
     static member remove item (l:MutableList<'item>) = l.Remove item
+
+type ObservableBase<'a>() =
+    let subscriptionList = MutableList<IObserver<'a>>.empty        
+    interface IObservable<'a> with
+        member x.Subscribe observer = subscriptionList.Add observer |> ignore
+                                      { new IDisposable with member x.Dispose() = subscriptionList.Remove observer |> ignore }
+
+    member x.Complete() = subscriptionList.Value |> List.iter (fun obs -> obs.OnCompleted())
+    member x.Push data = subscriptionList.Value |> List.iter (fun observer -> observer.OnNext data)
+    member x.Error exn = subscriptionList.Value |> List.iter (fun obs -> obs.OnError exn)
