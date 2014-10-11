@@ -37,7 +37,7 @@ type ObservableSource<'a>() =
     static member get (source:ObservableSource<'a>) = source :> IObservable<'a>
 
 module Observable =
-    let observeStream (eventStream:ObservableSource<byte>) (stream:IO.Stream) =
+    let observeStream asyncRun (eventStream:ObservableSource<byte>) (stream:IO.Stream) =
         let buffer = Array.zeroCreate 16384
         let rec readStreamAsync() =
             async {
@@ -46,8 +46,8 @@ module Observable =
                     then buffer
                          |> Seq.take read
                          |> Seq.iter (fun v -> eventStream.Push v)
-                         Async.Start <| readStreamAsync()
+                         asyncRun <| readStreamAsync()
                     else eventStream.Complete()
             }
-        readStreamAsync()
+        asyncRun <| readStreamAsync()
 
