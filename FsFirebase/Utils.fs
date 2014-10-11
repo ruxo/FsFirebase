@@ -37,6 +37,8 @@ type ObservableSource<'a>() =
     static member get (source:ObservableSource<'a>) = source :> IObservable<'a>
 
 module Observable =
+    open System.Text
+
     let observeStream asyncRun (eventStream:ObservableSource<byte>) (stream:IO.Stream) =
         let buffer = Array.zeroCreate 16384
         let rec readStreamAsync() =
@@ -50,4 +52,43 @@ module Observable =
                     else eventStream.Complete()
             }
         asyncRun <| readStreamAsync()
+
+    let byteToCharStream (encoder:Encoding) stream =
+        let buffer = [|0uy|]
+        let charbuf = [| '\000' |]
+        let decoder = encoder.GetDecoder()
+
+        let decode v =
+            buffer.[0] <- v
+            decoder.GetChars(buffer, 0, 1, charbuf, 0)
+
+        stream
+        |> Observable.filter (fun v -> (decode v) = 1)
+        |> Observable.map (fun _ -> charbuf.[0])
+
+    let charToLineStream (stream:IObservable<char>) =
+        let lineStream = ObservableSource.create()
+        let sb = StringBuilder()
+
+        let pushCurrent() =
+            lineStream.Push (string sb)
+            sb.Length <- 0
+        let append c = ignore <| sb.Append(c:char)
+
+        let pairStream = stream |> Observable.scan (fun (_, last0) c -> last0, c) ('\000', '\000')
+        pairStream.Subscribe { new IObserver<char * char> with
+                                   member x.OnNext pair =
+                                      match pair with
+                                      | _, '\n' -> pushCurrent()
+                                      | '\r', c -> pushCurrent()
+                                                   append c
+                                      | _, c -> append c
+
+                                   member x.OnCompleted() =
+                                      if sb.Length > 0 then lineStream.Push (string sb)
+                                      lineStream.Complete()
+                                   member x.OnError exn = lineStream.Error exn
+                             } |> ignore
+        lineStream :> IObservable<string>
+
 
