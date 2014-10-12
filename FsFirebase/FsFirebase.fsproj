@@ -50,6 +50,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="Utils.fs" />
+    <Compile Include="ServerEventSource.fs" />
     <Compile Include="FsFirebase.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
