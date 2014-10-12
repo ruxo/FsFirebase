@@ -79,10 +79,12 @@ module Observable =
         pairStream.Subscribe { new IObserver<char * char> with
                                    member x.OnNext pair =
                                       match pair with
-                                      | _, '\n' -> pushCurrent()
+                                      |    _, '\n' -> pushCurrent()
+                                      | '\r', '\r' -> pushCurrent()
                                       | '\r', c -> pushCurrent()
                                                    append c
-                                      | _, c -> append c
+                                      |    _, '\r' -> ()
+                                      |    _, c -> append c
 
                                    member x.OnCompleted() =
                                       if sb.Length > 0 then lineStream.Push (string sb)
