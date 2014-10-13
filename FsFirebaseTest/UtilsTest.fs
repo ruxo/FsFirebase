@@ -1,30 +1,30 @@
 ﻿module UtilsTest
 
 open System
-open Xunit
-open FsUnit.Xunit
+open NUnit.Framework
+open FsUnit
 open FsFirebaseUtils
 
-let [<Fact>] ``Add item to a list of integer``() =
+let [<Test>] ``Add item to a list of integer``() =
     MutableList.empty 
     |> MutableList.add 1
     |> MutableList.get
     |> should equal [1]
 
-let [<Fact>] ``Add item to a list of few integers``() =
+let [<Test>] ``Add item to a list of few integers``() =
     (MutableList [1;2;3;4])
     |> MutableList.add 5
     |> MutableList.get
     |> should equal [5;1;2;3;4]
 
-let [<Fact>] ``Remove a middle item from a list of integers``() =
+let [<Test>] ``Remove a middle item from a list of integers``() =
     (MutableList [1;2;3;4;5])
     |> MutableList.remove 3
     |> MutableList.get
     |> should equal [1;2;4;5]
 
 module Observable =
-    let [<Fact>] ``Make stream an observable``()=
+    let [<Test>] ``Make stream an observable``()=
         let memStream = new System.IO.MemoryStream([| 1uy; 2uy; 3uy; 4uy; 5uy |])
 
         let d: byte list ref = ref []
@@ -38,7 +38,7 @@ module Observable =
         !d |> should equal [5uy; 4uy; 3uy; 2uy; 1uy]
 
 
-    let [<Fact>] ``Observable library hooks source`` () =
+    let [<Test>] ``Observable library hooks source`` () =
         let singleObserver:IObserver<char> ref = ref null
         let source = { new IObservable<char> with
                          member x.Subscribe obs = singleObserver := obs
@@ -55,7 +55,7 @@ module Observable =
 
         (!singleObserver) |> should not' (be Null)
         
-    let [<Fact>] ``Observable chains OnComplete()`` () =
+    let [<Test>] ``Observable chains OnComplete()`` () =
         let singleObserver:IObserver<char> ref = ref null
         let source = { new IObservable<char> with
                          member x.Subscribe obs = singleObserver := obs
@@ -76,7 +76,7 @@ module Observable =
         (!completed) |> should be True
 
     open System.Text
-    let [<Fact>] ``byteToCharStream can convert UTF8 string correctly``() =
+    let [<Test>] ``byteToCharStream can convert UTF8 string correctly``() =
         let expected = "สวัสดี\r\nชาวโลก!"
         let bytes = Encoding.UTF8.GetBytes(expected)
         let source = ObservableSource.create()
@@ -91,7 +91,7 @@ module Observable =
 
         (string sb) |> should equal expected
 
-    let [<Fact>] ``charToLineStream can split lines correctly`` () =
+    let [<Test>] ``charToLineStream can split lines correctly`` () =
         let expected = "สวัสดี\rตื่นเถิด\r\nชาวโลก!\nsomeone said"
         let source = ObservableSource.create()
 
