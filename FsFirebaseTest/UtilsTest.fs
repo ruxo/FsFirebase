@@ -1,6 +1,7 @@
 ﻿module UtilsTest
 
 open System
+open System.Collections.Generic
 open NUnit.Framework
 open FsUnit
 open FsFirebaseUtils
@@ -106,3 +107,20 @@ module Observable =
         source.Complete()
 
         !final |> should equal ["someone said"; "ชาวโลก!"; "ตื่นเถิด"; "สวัสดี"]
+
+    [<TestCase("\n")>]
+    [<TestCase("\r\n")>]
+    let ``charToLineStream fire a blank line`` (data:string) =
+        let source = ObservableSource.create()
+
+        let final = Queue()
+
+        source
+        |> Observable.charToLineStream
+        |> Observable.subscribe (fun s -> final.Enqueue s)
+        |> ignore
+
+        Seq.iter source.Push data
+
+        final.Count |> should equal 1
+        final.Dequeue() |> should equal ""
