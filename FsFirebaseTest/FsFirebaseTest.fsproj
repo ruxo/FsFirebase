@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="UtilsTest.fs" />
     <Compile Include="FirebaseUrlTest.fs" />
+    <Compile Include="ServerEventSourceTest.fs" />
     <Compile Include="FsFirebaseTest.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <Content Include="packages.config" />
