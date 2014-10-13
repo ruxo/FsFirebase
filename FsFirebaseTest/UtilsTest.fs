@@ -6,39 +6,7 @@ open NUnit.Framework
 open FsUnit
 open FsFirebaseUtils
 
-let [<Test>] ``Add item to a list of integer``() =
-    MutableList.empty 
-    |> MutableList.add 1
-    |> MutableList.get
-    |> should equal [1]
-
-let [<Test>] ``Add item to a list of few integers``() =
-    (MutableList [1;2;3;4])
-    |> MutableList.add 5
-    |> MutableList.get
-    |> should equal [5;1;2;3;4]
-
-let [<Test>] ``Remove a middle item from a list of integers``() =
-    (MutableList [1;2;3;4;5])
-    |> MutableList.remove 3
-    |> MutableList.get
-    |> should equal [1;2;4;5]
-
 module Observable =
-    let [<Test>] ``Make stream an observable``()=
-        let memStream = new System.IO.MemoryStream([| 1uy; 2uy; 3uy; 4uy; 5uy |])
-
-        let d: byte list ref = ref []
-        let source = ObservableSource.create()
-        ObservableSource.get source
-        |> Observable.subscribe (fun v -> d := v::(!d))
-        |> ignore
-    
-        Observable.observeStream (Async.RunSynchronously) source memStream
-
-        !d |> should equal [5uy; 4uy; 3uy; 2uy; 1uy]
-
-
     let [<Test>] ``Observable library hooks source`` () =
         let singleObserver:IObserver<char> ref = ref null
         let source = { new IObservable<char> with
@@ -124,3 +92,40 @@ module Observable =
 
         final.Count |> should equal 1
         final.Dequeue() |> should equal ""
+
+open Fuchu
+[<Fuchu.Tests>]
+let tests =
+    testList "UtilsTests" [
+        testCase "Add item to a list of integer" <|
+            fun _ -> MutableList.empty 
+                     |> MutableList.add 1
+                     |> MutableList.get
+                     |> should equal [1]
+
+        testCase "Add item to a list of few integers" <|
+            fun _ -> (MutableList [1;2;3;4])
+                     |> MutableList.add 5
+                     |> MutableList.get
+                     |> should equal [5;1;2;3;4]
+
+        testCase "Remove a middle item from a list of integers" <|
+            fun _ -> (MutableList [1;2;3;4;5])
+                     |> MutableList.remove 3
+                     |> MutableList.get
+                     |> should equal [1;2;4;5]
+
+        testList "Observable" [
+            testCase "Make stream an observable" <|
+                fun _ -> let memStream = new System.IO.MemoryStream([| 1uy; 2uy; 3uy; 4uy; 5uy |])
+                         let d: byte list ref = ref []
+                         let source = ObservableSource.create()
+                         ObservableSource.get source
+                         |> Observable.subscribe (fun v -> d := v::(!d))
+                         |> ignore
+    
+                         Observable.observeStream (Async.RunSynchronously) source memStream
+
+                         !d |> should equal [5uy; 4uy; 3uy; 2uy; 1uy]
+        ]
+    ]
