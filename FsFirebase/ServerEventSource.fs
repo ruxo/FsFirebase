@@ -9,6 +9,8 @@ open FsFirebaseUtils
 [<Literal>]
 let TextEventStreamMime = "text/event-stream"
 
+type Milliseconds = Milliseconds of int
+
 type RetryType = Temporary | Permanent
 type ConnectionResult =
     | OK of IO.Stream
@@ -78,10 +80,17 @@ let private _createEventSourceStack =
     >> Observable.charToLineStream
     >> Observable.map _interpretLine
 
-type private ProcessorState = { Event:string; Data: string list; Comment: string list }
+type private ProcessorState =
+    { Event:string
+      Data: string list
+      Comment: string list
+    }
+    static member empty = {Event=String.Empty; Data=[]; Comment=[]}
 
-type EventSourceProcessor() =
+type EventSourceProcessor(?initReconnectionTime, ?initLastId) =
     let stream = ObservableSource.create()
+    let mutable lastId: string option = initLastId
+    let mutable reconnectionTime = defaultArg initReconnectionTime (Milliseconds 0)
 
     let processServerEvent current es =
         match es with
@@ -89,8 +98,12 @@ type EventSourceProcessor() =
             match field with
             | "event" -> { current with Event=data }
             | "data" -> { current with Data=data::current.Data }
-            | "id"
-            | "retry" -> failwith "Not supported yet"
+            | "id" -> lastId <- if String.IsNullOrEmpty data then None else Some data
+                      current
+            | "retry" -> match Int32.TryParse data with
+                         | false, _ -> current
+                         | true, value -> reconnectionTime <- Milliseconds value
+                                          current
             | _ -> current
 
         | EventSourceType.Comment comment ->
@@ -108,13 +121,13 @@ type EventSourceProcessor() =
     let networkSink = ObservableSource.create()
     let processor = networkSink
                     |> _createEventSourceStack
-                    |> Observable.scan processServerEvent {Event=""; Data=[]; Comment=[]}
+                    |> Observable.scan processServerEvent ProcessorState.empty
 
     interface IObservable<EventSourceMessage> with
         member x.Subscribe observer = (stream :> IObservable<EventSourceMessage>).Subscribe observer
 
     member x.Start uri uriModifier =
-        let message = createEventSourceMessage uri None
+        let message = createEventSourceMessage uri lastId
         async {
             let! response = connectEventSourceServer message
             match response with
