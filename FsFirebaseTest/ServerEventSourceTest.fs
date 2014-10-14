@@ -5,16 +5,17 @@ open NUnit.Framework
 open FsUnit
 open FsFirebaseUtils
 open ServerEventSource
+open ServerEventSource.InnerProcessor
 
 let [<Test>] ``Check line interpretation algorithm``() =
-    ServerEventSource._interpretLine "" |> should equal BlankLine
-    ServerEventSource._interpretLine "event type" |> should equal (Field ("event type", ""))
-    ServerEventSource._interpretLine " : Comment!" |> should equal (EventSourceType.Comment "Comment!")
-    ServerEventSource._interpretLine "field: data" |> should equal (Field ("field", "data"))
+    interpretLine "" |> should equal BlankLine
+    interpretLine "event type" |> should equal (Field ("event type", ""))
+    interpretLine " : Comment!" |> should equal (EventSourceType.Comment "Comment!")
+    interpretLine "field: data" |> should equal (Field ("field", "data"))
 
-let testNetworkStream data expected =
+let testNetworkStream data (expected:EventSourceMessage list) =
     let output = ObservableSource.create()
-    let ns = ServerEventSource._createNetworkStream(output, (fun _ -> ()), (fun _ -> ()))
+    let ns = createNetworkStream(output, (fun _ -> ()), (fun _ -> ()))
     let buffer = Queue()
     output |> Observable.subscribe (fun e -> buffer.Enqueue e) |> ignore
 
@@ -49,7 +50,7 @@ data:second event
 id
 
 data:   third event"""
-        [ Comment ["test stream"]
+        [ EventSourceMessage.Comment ["test stream"]
           ServerEvent ("", ["first event"])
           ServerEvent ("", ["second event"])
         ]

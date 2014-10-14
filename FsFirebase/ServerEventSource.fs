@@ -6,73 +6,71 @@ open System.Net.Http
 open System.Net.Http.Headers
 open FsFirebaseUtils
 
-[<Literal>]
-let TextEventStreamMime = "text/event-stream"
-
 type Milliseconds = Milliseconds of int
-
-type EventSourceType =
-    | BlankLine
-    | Comment of string
-    | Field of string * string
-
-let _interpretLine (line:string) =
-    let normalized = line.Trim()
-    match normalized.IndexOf(':') with
-    | -1 when String.IsNullOrEmpty(normalized) -> BlankLine
-    | -1 -> Field (normalized, String.Empty)
-    | 0 -> Comment <| normalized.Substring(1).TrimStart()
-    | n -> Field (normalized.Substring(0,n).TrimEnd(), normalized.Substring(n+1).TrimStart())
 
 type EventSourceMessage =
     | Comment of string list
     | ServerEvent of string * string list
 
-let _createEventSourceStack  = Observable.byteToCharStream System.Text.Encoding.UTF8
-                               >> Observable.charToLineStream
-                               >> Observable.map _interpretLine
+module InnerProcessor = 
+    type EventSourceType =
+        | BlankLine
+        | Comment of string
+        | Field of string * string
 
-type ProcessorState =
-    { Event:string
-      Data: string list
-      Comment: string list
-    }
-    static member empty = {Event=String.Empty; Data=[]; Comment=[]}
+    let interpretLine (line:string) =
+        let normalized = line.Trim()
+        match normalized.IndexOf(':') with
+        | -1 when String.IsNullOrEmpty(normalized) -> BlankLine
+        | -1 -> Field (normalized, String.Empty)
+        | 0 -> Comment <| normalized.Substring(1).TrimStart()
+        | n -> Field (normalized.Substring(0,n).TrimEnd(), normalized.Substring(n+1).TrimStart())
 
-let _processServerEvent (stream:ObservableSource<EventSourceMessage>, updateLastId, updateReconnectionTime) current es =
-    match es with
-    | Field (field, data) ->
-        match field with
-        | "event" -> { current with Event=data }
-        | "data" -> { current with Data=data::current.Data }
-        | "id" -> updateLastId <| if String.IsNullOrEmpty data then None else Some data
-                  current
-        | "retry" -> match Int32.TryParse data with
-                     | false, _ -> current
-                     | true, value -> updateReconnectionTime <| Milliseconds value
-                                      current
-        | _ -> current
+    let createEventSourceStack  = Observable.byteToCharStream System.Text.Encoding.UTF8
+                                   >> Observable.charToLineStream
+                                   >> Observable.map interpretLine
 
-    | EventSourceType.Comment comment ->
-        { current with Comment=comment::current.Comment }
+    type ProcessorState =
+        { Event:string
+          Data: string list
+          Comment: string list
+        }
+        static member empty = {Event=String.Empty; Data=[]; Comment=[]}
 
-    | BlankLine ->
-        if current.Comment <> []
-            then stream.Push <| EventSourceMessage.Comment (List.rev current.Comment)
-                 { current with Comment=[] }
-        elif current.Data <> []
-            then stream.Push <| ServerEvent (current.Event, List.rev current.Data)
-                 { current with Event=""; Data=[] }
-            else current
+    let processServerEvent (stream:ObservableSource<EventSourceMessage>, updateLastId, updateReconnectionTime) current es =
+        match es with
+        | Field (field, data) ->
+            match field with
+            | "event" -> { current with Event=data }
+            | "data" -> { current with Data=data::current.Data }
+            | "id" -> updateLastId <| if String.IsNullOrEmpty data then None else Some data
+                      current
+            | "retry" -> match Int32.TryParse data with
+                         | false, _ -> current
+                         | true, value -> updateReconnectionTime <| Milliseconds value
+                                          current
+            | _ -> current
 
-let _createNetworkStream procParam =
-    let networkSink = ObservableSource.create()
-    networkSink
-    |> _createEventSourceStack
-    |> Observable.scan (_processServerEvent procParam) ProcessorState.empty
-    |> Observable.subscribe (fun _ -> ())
-    |> ignore
-    networkSink
+        | EventSourceType.Comment comment ->
+            { current with Comment=comment::current.Comment }
+
+        | BlankLine ->
+            if current.Comment <> []
+                then stream.Push <| EventSourceMessage.Comment (List.rev current.Comment)
+                     { current with Comment=[] }
+            elif current.Data <> []
+                then stream.Push <| ServerEvent (current.Event, List.rev current.Data)
+                     { current with Event=""; Data=[] }
+                else current
+
+    let createNetworkStream procParam =
+        let networkSink = ObservableSource.create()
+        networkSink
+        |> createEventSourceStack
+        |> Observable.scan (processServerEvent procParam) ProcessorState.empty
+        |> Observable.subscribe (fun _ -> ())
+        |> ignore
+        networkSink
 
 type RetryType = Temporary | Permanent
 type ConnectionResult =
@@ -83,6 +81,9 @@ type ConnectionResult =
     | RetryLater
 
 module InnerServer =
+    [<Literal>]
+    let TextEventStreamMime = "text/event-stream"
+
     let private __contentType (response:HttpResponseMessage) = response.Content.Headers.ContentType
     let private __location (response:HttpResponseMessage) = response.Headers.Location
 
@@ -144,10 +145,10 @@ type EventSourceProcessor(?initReconnectionTime, ?initLastId) =
                             |> InnerServer.connectEventSourceServer message
             match response with
             | OK networkStream ->
-                let networkSink = _createNetworkStream ( stream
-                                                        , (fun id -> lastId <- id)
-                                                        , (fun time -> reconnectionTime <- time)
-                                                        )
+                let networkSink = InnerProcessor.createNetworkStream ( stream
+                                                      , (fun id -> lastId <- id)
+                                                      , (fun time -> reconnectionTime <- time)
+                                                      )
                 in Observable.observeStream (Async.RunSynchronously) networkSink networkStream
             | Failed (code, msg) -> errorStream.Push (code, msg)
             | Retry (newUri, _) -> x.Start newUri
