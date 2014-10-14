@@ -13,7 +13,7 @@ let run title fasync =
         printfn "%s" title
         let! (result: FirebaseResult) = fasync
         match result with
-        | Choice1Of2 r -> printfn "Response = %s" r
+        | Choice1Of2 _ -> ()
         | Choice2Of2 (code, msg) -> printfn "Put failed with %A: %s" code msg
     } |> Async.RunSynchronously
 
@@ -50,3 +50,6 @@ run "delete" <| deleteAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.co
 run "test auth should fail" <| getAsync (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json", "DUMMY"))
 
 run "put timestamp" <| putTimestamp (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/time.json")
+
+printfn "Press ENTER to end..."
+System.Console.ReadLine()

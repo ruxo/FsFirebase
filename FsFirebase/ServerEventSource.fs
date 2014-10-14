@@ -82,45 +82,49 @@ type ConnectionResult =
     | UseProxy of Uri
     | RetryLater
 
-let private __contentType (response:HttpResponseMessage) = response.Content.Headers.ContentType
-let private __location (response:HttpResponseMessage) = response.Headers.Location
+module InnerServer =
+    let private __contentType (response:HttpResponseMessage) = response.Content.Headers.ContentType
+    let private __location (response:HttpResponseMessage) = response.Headers.Location
 
-let _connectEventSourceServer message =
-    async {
-        use client = new HttpClient()
+    let createHttpClient proxy =
+        match proxy with
+        | Some uri -> let handler = new HttpClientHandler(UseProxy = true, Proxy = WebProxy(uri:Uri))
+                      in new HttpClient(handler)
+        | None -> new HttpClient()
 
-        let! response = client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead) |> Async.AwaitTask
-        match response.StatusCode with
-        | HttpStatusCode.OK when (__contentType response).MediaType = TextEventStreamMime -> 
-            let! responseStream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
-            return OK responseStream
-        | HttpStatusCode.OK ->
-            return Failed (HttpStatusCode.NotImplemented, "Unrecognize response's content-type: " + (string <| __contentType response))
-        | HttpStatusCode.UseProxy ->
-            return UseProxy (__location response)
-        | HttpStatusCode.MovedPermanently ->
-            return Retry (__location response, Permanent)
-        | HttpStatusCode.Found
-        | HttpStatusCode.SeeOther
-        | HttpStatusCode.TemporaryRedirect ->
-            return Retry (__location response, Temporary)
-        | HttpStatusCode.InternalServerError
-        | HttpStatusCode.BadGateway
-        | HttpStatusCode.ServiceUnavailable
-        | HttpStatusCode.GatewayTimeout ->
-            return RetryLater
-        | _ ->
-            return Failed (response.StatusCode, response.ReasonPhrase)
-    }
+    let connectEventSourceServer message (client:HttpClient) =
+        async {
+            let! response = client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead) |> Async.AwaitTask
+            match response.StatusCode with
+            | HttpStatusCode.OK when (__contentType response).MediaType = TextEventStreamMime -> 
+                let! responseStream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
+                return OK responseStream
+            | HttpStatusCode.OK ->
+                return Failed (HttpStatusCode.NotImplemented, "Unrecognize response's content-type: " + (string <| __contentType response))
+            | HttpStatusCode.UseProxy ->
+                return UseProxy (__location response)
+            | HttpStatusCode.MovedPermanently ->
+                return Retry (__location response, Permanent)
+            | HttpStatusCode.Found
+            | HttpStatusCode.SeeOther
+            | HttpStatusCode.TemporaryRedirect ->
+                return Retry (__location response, Temporary)
+            | HttpStatusCode.InternalServerError
+            | HttpStatusCode.BadGateway
+            | HttpStatusCode.ServiceUnavailable
+            | HttpStatusCode.GatewayTimeout ->
+                return RetryLater
+            | _ ->
+                return Failed (response.StatusCode, response.ReasonPhrase)
+        }
 
-let _createEventSourceMessage (uri:Uri) lastEventId = 
-    let message = new HttpRequestMessage(HttpMethod.Get, string uri)
-    message.Headers.Accept.Add (MediaTypeWithQualityHeaderValue TextEventStreamMime)
-    message.Headers.CacheControl <- CacheControlHeaderValue(NoCache=true)
-    if Option.isSome lastEventId
-        then message.Headers.Add("Last-Event-ID", Option.get<string> lastEventId)
-    message
-
+    let createEventSourceMessage (uri:Uri) lastEventId = 
+        let message = new HttpRequestMessage(HttpMethod.Get, string uri)
+        message.Headers.Accept.Add (MediaTypeWithQualityHeaderValue TextEventStreamMime)
+        message.Headers.CacheControl <- CacheControlHeaderValue(NoCache=true)
+        if Option.isSome lastEventId
+            then message.Headers.Add("Last-Event-ID", Option.get<string> lastEventId)
+        message
 
 type EventSourceProcessor(?initReconnectionTime, ?initLastId) =
     let stream = ObservableSource.create()
@@ -133,21 +137,23 @@ type EventSourceProcessor(?initReconnectionTime, ?initLastId) =
 
     member x.Error with get() = errorStream :> IObservable<HttpStatusCode * string>
 
-    member x.Start uri =
-        let message = _createEventSourceMessage uri lastId
+    member x.Start(uri, ?proxy) =
+        let message = InnerServer.createEventSourceMessage uri lastId
         async {
-            let! response = _connectEventSourceServer message
+            let! response = InnerServer.createHttpClient proxy
+                            |> InnerServer.connectEventSourceServer message
             match response with
             | OK networkStream ->
                 let networkSink = _createNetworkStream ( stream
-                                                       , (fun id -> lastId <- id)
-                                                       , (fun time -> reconnectionTime <- time)
-                                                       )
+                                                        , (fun id -> lastId <- id)
+                                                        , (fun time -> reconnectionTime <- time)
+                                                        )
                 in Observable.observeStream (Async.RunSynchronously) networkSink networkStream
             | Failed (code, msg) -> errorStream.Push (code, msg)
+            | Retry (newUri, _) -> x.Start newUri
+            | UseProxy proxyUri -> x.Start(uri, proxyUri)
             | RetryLater -> let (Milliseconds t) = reconnectionTime
                             do! Async.Sleep t
                             x.Start uri
-            | e -> printfn "Not supported yet; %A" e
         }
         |> Async.Start
