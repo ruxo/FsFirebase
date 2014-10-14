@@ -89,7 +89,7 @@ let _connectEventSourceServer message =
     async {
         use client = new HttpClient()
 
-        let! response = client.SendAsync(message) |> Async.AwaitTask
+        let! response = client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead) |> Async.AwaitTask
         match response.StatusCode with
         | HttpStatusCode.OK when (__contentType response).MediaType = TextEventStreamMime -> 
             let! responseStream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
@@ -145,6 +145,9 @@ type EventSourceProcessor(?initReconnectionTime, ?initLastId) =
                                                        )
                 in Observable.observeStream (Async.RunSynchronously) networkSink networkStream
             | Failed (code, msg) -> errorStream.Push (code, msg)
+            | RetryLater -> let (Milliseconds t) = reconnectionTime
+                            do! Async.Sleep t
+                            x.Start uri
             | e -> printfn "Not supported yet; %A" e
         }
         |> Async.Start

@@ -34,7 +34,7 @@ eventStream
 eventStream.Error
 |> Observable.subscribe (fun (code, msg) -> printfn "ERROR %A: %s" code msg)
 
-eventStream.Start (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/").Uri
+eventStream.Start (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/.json")).Uri
 
 run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
 
