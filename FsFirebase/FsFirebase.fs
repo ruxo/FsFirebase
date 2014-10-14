@@ -39,24 +39,31 @@ module Json =
         token.ToString(Formatting.None)
 
 type FirebaseUrl(url, ?auth, ?pretty, ?shallow, ?priority) =
-    let uri = Uri(url)
-    let boolParameter flag v p = match defaultArg flag false with
-                                 | false -> p
-                                 | true -> v::p
+    let auth' = defaultArg auth ""
+    let pretty' = defaultArg pretty false
+    let shallow' = defaultArg shallow false
+    let priority' = defaultArg priority false
 
-    let getAuth p = match defaultArg auth "" with
-                    | "" -> p
-                    | txt -> ("auth", txt)::p
-    let getPretty = boolParameter pretty ("print", "pretty")
-    let getShallow = boolParameter shallow ("shallow", "true")
-    let getPriority = boolParameter priority ("format", "export")
+    let boolParameter flag v p = if flag then v::p else p
 
-    override x.ToString() = match (getAuth >> getPretty >> getShallow >> getPriority) [] with
-                            | [] -> url
-                            | pairs ->
-                                let paramTexts = pairs
-                                                 |> List.map (fun (k,v) -> sprintf "%s=%s" (Uri.EscapeUriString(k)) (Uri.EscapeUriString(v)))
-                                in sprintf "%s?%s" (string uri) (String.concat "&" paramTexts)
+    let getAuth p = if auth' = "" then p else ("auth", auth')::p
+    let getPretty = boolParameter pretty' ("print", "pretty")
+    let getShallow = boolParameter shallow' ("shallow", "true")
+    let getPriority = boolParameter priority' ("format", "export")
+
+    let makeUri() = match (getAuth >> getPretty >> getShallow >> getPriority) [] with
+                    | [] -> url
+                    | pairs ->
+                        let paramTexts = pairs
+                                         |> List.map (fun (k,v) -> sprintf "%s=%s" (Uri.EscapeUriString(k)) (Uri.EscapeUriString(v)))
+                        in sprintf "%s?%s" url (String.concat "&" paramTexts)
+    
+    member x.ChangeLocation (uri:Uri) = new FirebaseUrl(string uri, auth', pretty', shallow', priority')
+    member x.Uri = Uri(makeUri())
+    override x.ToString() = string x.Uri
+
+    static member uri (url:FirebaseUrl) = url.Uri
+
 
 type FirebaseReturnCode =
     | OK = 200
@@ -99,3 +106,36 @@ let patchAsync (url:FirebaseUrl) data =
 let postAsync (url:FirebaseUrl) data = _requestAsync (fun client -> client.PostAsync(string url, new StringContent(data)))
 
 let deleteAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.DeleteAsync(string url))
+
+module FirebaseStream =
+    open System.Net
+    open System.Net.Http.Headers
+    open FsFirebaseUtils
+
+
+    type EventMessage = { Event:string
+                          Data:string
+                          LastEvent:string
+                          Retry:int
+                        }
+    type State =
+        | Connecting
+        | Open of EventMessage
+        | Closed of (HttpStatusCode * string) option   // as an error message
+
+    let createFrom (eventTracker:ObservableSource<State>) (url:FirebaseUrl) =
+        let failConnection (status, reason) =
+            eventTracker.Push <| Closed (Some (status, reason))
+            eventTracker.Complete()
+
+        eventTracker :> IObservable<State>
+        (*
+        eventSource.EventReceived
+        |> Observable.map (fun arg -> { Event       =arg.Message.EventType
+                                        Data        =arg.Message.Data
+                                        LastEvent   =arg.Message.LastEventId
+                                        Retry       =if arg.Message.Retry.HasValue
+                                                         then arg.Message.Retry.Value
+                                                         else 0
+                                      })
+                                      *)
