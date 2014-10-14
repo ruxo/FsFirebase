@@ -1,9 +1,12 @@
 ﻿#r "System.Net.Http.dll"
 #r "Newtonsoft.json.dll"
 
+#load "Utils.fs"
+#load "ServerEventSource.fs"
 #load "FsFirebase.fs"
 
 open FsFirebase
+open ServerEventSource
 
 let run title fasync =
     async {
@@ -22,9 +25,16 @@ let sample =
                               ]
         ]
 
-//let eventStream = FirebaseStream.createFrom (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/")
-//eventStream
-//|> Observable.subscribe (fun m -> printfn "Event: %s\nData: %s" m.Event m.Data)
+let eventStream = EventSourceProcessor()
+eventStream
+|> Observable.subscribe (function
+                         | Comment comments -> printfn "COMMENT %A" comments
+                         | ServerEvent (event, data) -> printfn "EVENT %s : %A" event data)
+
+eventStream.Error
+|> Observable.subscribe (fun (code, msg) -> printfn "ERROR %A: %s" code msg)
+
+eventStream.Start (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/").Uri
 
 run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
 
