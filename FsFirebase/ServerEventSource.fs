@@ -73,6 +73,8 @@ module InnerProcessor =
         networkSink
 
 type RetryType = Temporary | Permanent
+
+[<NoComparison>]
 type ConnectionResult =
     | OK of IO.Stream
     | Failed of HttpStatusCode * string

@@ -2,7 +2,7 @@
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>c19f93e9-5d17-4cfa-88bc-5a2f9f560ea3</ProjectGuid>
@@ -19,18 +19,20 @@
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
     <OutputPath>..\bin\Debug\</OutputPath>
+    <IntermediateOutputPath>..\obj\FsFirebase\Debug</IntermediateOutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\FsFirebase.XML</DocumentationFile>
+    <WarningLevel>5</WarningLevel>
+    <DocumentationFile>..\bin\Debug\FsFirebase.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
+    <IntermediateOutputPath>..\obj\FsFirebase\Release</IntermediateOutputPath>
     <OutputPath>..\bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\FsFirebase.XML</DocumentationFile>
+    <WarningLevel>5</WarningLevel>
+    <DocumentationFile>..\bin\Release\FsFirebase.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -52,8 +54,9 @@
     <Compile Include="Utils.fs" />
     <Compile Include="ServerEventSource.fs" />
     <Compile Include="FsFirebase.fs" />
-    <None Include="Script.fsx" />
     <Content Include="packages.config" />
+    <Compile Include="AssemblyInfo.fs" />
+    <None Include="Example.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
