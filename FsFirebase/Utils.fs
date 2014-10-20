@@ -1,4 +1,4 @@
-﻿module FsFirebaseUtils
+﻿module FsFirebase.Utils
 
 open System
 open System.Threading

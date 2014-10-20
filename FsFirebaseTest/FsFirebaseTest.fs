@@ -2,7 +2,7 @@
 
 open NUnit.Framework
 open FsUnit
-open FsFirebase
+open FsFirebase.Core
 
 let [<Test>] ``When serializing a list of int into JSON`` () =
     Json.fromObj [1;2;3;4;5] |> should equal "[1,2,3,4,5]"

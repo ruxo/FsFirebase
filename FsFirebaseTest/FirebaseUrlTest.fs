@@ -2,7 +2,7 @@
 
 open NUnit.Framework
 open FsUnit
-open FsFirebase
+open FsFirebase.Core
 
 let [<Test>] ``Ordinary URI should not cause any exception``() =
     let uri = FirebaseUrl("http://examples.com")

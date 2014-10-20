@@ -3,7 +3,7 @@
 open System.Collections.Generic
 open NUnit.Framework
 open FsUnit
-open FsFirebaseUtils
+open FsFirebase.Utils
 open ServerEventSource
 open ServerEventSource.InnerProcessor
 

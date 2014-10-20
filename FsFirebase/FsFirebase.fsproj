@@ -55,7 +55,6 @@
     <Compile Include="ServerEventSource.fs" />
     <Compile Include="FsFirebase.fs" />
     <Content Include="packages.config" />
-    <Compile Include="AssemblyInfo.fs" />
     <None Include="Example.fsx" />
   </ItemGroup>
   <ItemGroup>

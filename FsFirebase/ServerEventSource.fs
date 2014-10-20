@@ -4,7 +4,7 @@ open System
 open System.Net
 open System.Net.Http
 open System.Net.Http.Headers
-open FsFirebaseUtils
+open FsFirebase.Utils
 
 type Milliseconds = Milliseconds of int
 

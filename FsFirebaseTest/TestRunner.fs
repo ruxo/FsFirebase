@@ -1,4 +1,4 @@
-﻿module TestRunner
+﻿module FsFirebase.Test.Runner
 
 open Fuchu
 

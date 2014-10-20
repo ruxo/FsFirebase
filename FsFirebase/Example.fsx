@@ -5,7 +5,7 @@
 #load "ServerEventSource.fs"
 #load "FsFirebase.fs"
 
-open FsFirebase
+open FsFirebase.Core
 open ServerEventSource
 
 let run title fasync =
@@ -25,31 +25,35 @@ let sample =
                               ]
         ]
 
-let eventStream = EventSourceProcessor()
-eventStream
-|> Observable.subscribe (function
-                         | Comment comments -> printfn "COMMENT %A" comments
-                         | ServerEvent (event, data) -> printfn "EVENT %s : %A" event data)
+let runSample() =
+    let eventStream = EventSourceProcessor()
+    eventStream
+    |> Observable.subscribe (function
+                             | Comment comments -> printfn "COMMENT %A" comments
+                             | ServerEvent (event, data) -> printfn "EVENT %s : %A" event data)
+    |> ignore
 
-eventStream.Error
-|> Observable.subscribe (fun (code, msg) -> printfn "ERROR %A: %s" code msg)
+    eventStream.Error
+    |> Observable.subscribe (fun (code, msg) -> printfn "ERROR %A: %s" code msg)
+    |> ignore
 
-eventStream.Start (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/.json")).Uri
+    eventStream.Start (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/.json")).Uri
 
-run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
+    run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
 
-run "patchAsync" <| patchAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001.json")
-                               (Json.fromKeyPairs ["author", JString "RZ"; "temp", JString "dummy"])
-run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"A nice quote!\""
-run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"Another Quote!\""
+    run "patchAsync" <| patchAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001.json")
+                                   (Json.fromKeyPairs ["author", JString "RZ"; "temp", JString "dummy"])
+    run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"A nice quote!\""
+    run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"Another Quote!\""
 
-run "getAsync 001/quotes.json" <| getAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json")
+    run "getAsync 001/quotes.json" <| getAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json")
 
-run "delete" <| deleteAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/temp.json")
+    run "delete" <| deleteAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/temp.json")
 
-run "test auth should fail" <| getAsync (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json", "DUMMY"))
+    run "test auth should fail" <| getAsync (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json", "DUMMY"))
 
-run "put timestamp" <| putTimestamp (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/time.json")
+    run "put timestamp" <| putTimestamp (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/time.json")
 
-printfn "Press ENTER to end..."
-System.Console.ReadLine()
+    printfn "Press ENTER to end..."
+    System.Console.ReadLine() |> ignore
+

@@ -1,4 +1,4 @@
-﻿namespace FsFirebaseTest.AssemblyInfo
+﻿namespace FsFirebase.Test.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.InteropServices
@@ -21,7 +21,7 @@ COM, set the ComVisible attribute to true on that type. *)
 [<assembly: ComVisible(false)>]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[<assembly: Guid("a3134f2f-31e0-4123-a148-2ab5d27595aa")>]
+[<assembly: Guid("a3134f2f-31e0-4123-a148-2ab5d27595ab")>]
 
 (* Version information for an assembly consists of the following four values:
 

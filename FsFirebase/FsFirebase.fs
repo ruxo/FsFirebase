@@ -1,4 +1,4 @@
-﻿module FsFirebase
+﻿module FsFirebase.Core
 
 open System
 open System.Net.Http
@@ -110,8 +110,7 @@ let deleteAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.DeleteAs
 module FirebaseStream =
     open System.Net
     open System.Net.Http.Headers
-    open FsFirebaseUtils
-
+    open FsFirebase.Utils
 
     type EventMessage = { Event:string
                           Data:string
