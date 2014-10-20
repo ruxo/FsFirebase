@@ -51,11 +51,13 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="ServerEventSource.fs" />
     <Compile Include="FsFirebase.fs" />
     <Content Include="packages.config" />
     <None Include="Example.fsx" />
+    <None Include="FsFirebase.nuspec" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
