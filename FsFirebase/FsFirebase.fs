@@ -2,6 +2,7 @@
 
 open System
 open System.Net.Http
+open System.Net.Http.Headers
 open Newtonsoft.Json
 
 type JSON =
@@ -83,29 +84,35 @@ module FirebaseKeyMaker =
     /// <remark>https://www.firebase.com/docs/rest/guide/retrieving-data.html</remark>
     let priorityPrimitive n v = Json.jObject [".value", v; priority n]
 
-let private _requestAsync f =
+let private _requestAsync msg =
     async {
         use client = new HttpClient()
-        let! (response :HttpResponseMessage) = Async.AwaitTask <| f client
+
+        let! (response :HttpResponseMessage) = Async.AwaitTask <| client.SendAsync msg
         let! content = Async.AwaitTask <| response.Content.ReadAsStringAsync()
         return match response.IsSuccessStatusCode with
                | true -> Choice1Of2 content
                | false -> Choice2Of2 (enum<FirebaseReturnCode>(int response.StatusCode), content)
     }
 
-let getAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.GetAsync(string url))
+let private createRequestMessage (url:FirebaseUrl, m, data) =
+    let msg = match data with
+              | None -> new HttpRequestMessage(HttpMethod(m), string url)
+              | Some d -> new HttpRequestMessage(HttpMethod(m), string url, Content=new StringContent(d))
+    msg.Headers.Accept.Add( MediaTypeWithQualityHeaderValue("application/json") )
+    msg
 
-let putAsync (url:FirebaseUrl) data = _requestAsync (fun client -> client.PutAsync(string url, new StringContent(data)))
+let getAsync (url:FirebaseUrl) = _requestAsync <| createRequestMessage( url, "GET", None)
+
+let putAsync (url:FirebaseUrl) data = _requestAsync <| createRequestMessage (url, "PUT", Some data)
 
 let putTimestamp url = putAsync url """{".sv":"timestamp"}"""
 
-let patchAsync (url:FirebaseUrl) data =
-    _requestAsync (fun client -> let msg = new HttpRequestMessage(new HttpMethod("PATCH"), string url, Content=new StringContent(data))
-                                 in client.SendAsync(msg))
+let patchAsync (url:FirebaseUrl) data = _requestAsync <| createRequestMessage (url, "PATCH", Some data)
 
-let postAsync (url:FirebaseUrl) data = _requestAsync (fun client -> client.PostAsync(string url, new StringContent(data)))
+let postAsync (url:FirebaseUrl) data = _requestAsync <| createRequestMessage (url, "POST", Some data)
 
-let deleteAsync (url:FirebaseUrl) = _requestAsync (fun client -> client.DeleteAsync(string url))
+let deleteAsync (url:FirebaseUrl) = _requestAsync <| createRequestMessage (url, "DELETE", None)
 
 module FirebaseStream =
     open System.Net
