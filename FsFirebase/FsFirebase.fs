@@ -4,6 +4,7 @@ open System
 open System.Net.Http
 open System.Net.Http.Headers
 open Newtonsoft.Json
+open FsFirebase.Utils
 
 type JSON =
     | JString of string
@@ -39,7 +40,13 @@ module Json =
         let token = _jsonTokenize <| jObject pairs
         token.ToString(Formatting.None)
 
+let (|EndsWith|_|) pattern (target:string) = if target.EndsWith( pattern, StringComparison.OrdinalIgnoreCase )
+                                                 then Some target
+                                                 else None
+
 type FirebaseUrl(url, ?auth, ?pretty, ?shallow, ?priority) =
+    static let JsonSignature = ".json"
+
     let auth' = defaultArg auth ""
     let pretty' = defaultArg pretty false
     let shallow' = defaultArg shallow false
@@ -52,19 +59,26 @@ type FirebaseUrl(url, ?auth, ?pretty, ?shallow, ?priority) =
     let getShallow = boolParameter shallow' ("shallow", "true")
     let getPriority = boolParameter priority' ("format", "export")
 
+    static let jsonizeUrl (url:string) = match url.Trim() with
+                                         | EndsWith JsonSignature trimed -> trimed
+                                         | trimed -> VirtualPath.combine trimed JsonSignature
     let makeUri() = match (getAuth >> getPretty >> getShallow >> getPriority) [] with
-                    | [] -> url
+                    | [] -> jsonizeUrl url
                     | pairs ->
                         let paramTexts = pairs
                                          |> List.map (fun (k,v) -> sprintf "%s=%s" (Uri.EscapeUriString(k)) (Uri.EscapeUriString(v)))
-                        in sprintf "%s?%s" url (String.concat "&" paramTexts)
+                        in sprintf "%s?%s" (jsonizeUrl url) (String.concat "&" paramTexts)
     
-    member x.ChangeLocation (uri:Uri) = new FirebaseUrl(string uri, auth', pretty', shallow', priority')
     member x.Uri = Uri(makeUri())
+    member x.ChangeLocation (uri:Uri) = new FirebaseUrl(string uri, auth', pretty', shallow', priority')
+    member x.Path path = new FirebaseUrl(VirtualPath.combine url path, auth', pretty', shallow', priority')
+    member x.ChangeAuth newAuth = new FirebaseUrl(url, newAuth, pretty', shallow', priority')
+    
     override x.ToString() = string x.Uri
 
     static member uri (url:FirebaseUrl) = url.Uri
-
+    static member path path (url:FirebaseUrl) = url.Path path
+    static member changeAuth newAuth (url:FirebaseUrl) = url.ChangeAuth newAuth
 
 type FirebaseReturnCode =
     | OK = 200

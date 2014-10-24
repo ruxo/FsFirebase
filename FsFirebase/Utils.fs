@@ -3,6 +3,12 @@
 open System
 open System.Threading
 
+module VirtualPath =
+    let combine (basePath:string) relativePath = 
+        if basePath.EndsWith "/"
+            then basePath + relativePath
+            else basePath + "/" + relativePath
+
 type MutableList<'item when 'item:equality>(init) =
     let mutable items: 'item list = init
 

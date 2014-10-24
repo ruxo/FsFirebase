@@ -25,7 +25,7 @@ let sample =
                               ]
         ]
 
-let runSample() =
+let runSample (baseUrl:FirebaseUrl) =
     let eventStream = EventSourceProcessor()
     eventStream
     |> Observable.subscribe (function
@@ -37,23 +37,24 @@ let runSample() =
     |> Observable.subscribe (fun (code, msg) -> printfn "ERROR %A: %s" code msg)
     |> ignore
 
-    eventStream.Start (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/.json")).Uri
+    eventStream.Start baseUrl.Uri
 
-    run "putAsync" <| putAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users.json") sample
+    run "putAsync" <| putAsync (baseUrl.Path "users") sample
 
-    run "patchAsync" <| patchAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001.json")
+    run "patchAsync" <| patchAsync (baseUrl.Path "users/001")
                                    (Json.fromKeyPairs ["author", JString "RZ"; "temp", JString "dummy"])
-    run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"A nice quote!\""
-    run "postAsync" <| postAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json") "\"Another Quote!\""
+    run "postAsync" <| postAsync (baseUrl.Path "users/001/quotes") "\"A nice quote!\""
+    run "postAsync" <| postAsync (baseUrl.Path "users/001/quotes") "\"Another Quote!\""
 
-    run "getAsync 001/quotes.json" <| getAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json")
+    run "getAsync 001/quotes.json" <| getAsync (baseUrl.Path "users/001/quotes")
 
-    run "delete" <| deleteAsync (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/temp.json")
+    run "delete" <| deleteAsync (baseUrl.Path "users/001/temp")
 
-    run "test auth should fail" <| getAsync (FirebaseUrl("https://a7knbwy6th8.firebaseio-demo.com/users/001/quotes.json", "DUMMY"))
+    run "test auth should fail" <| getAsync (baseUrl |> FirebaseUrl.path "users/001/quotes" |> FirebaseUrl.changeAuth "DUMMY")
 
-    run "put timestamp" <| putTimestamp (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/users/001/time.json")
+    run "put timestamp" <| putTimestamp (baseUrl.Path "users/001/time")
 
     printfn "Press ENTER to end..."
     System.Console.ReadLine() |> ignore
 
+runSample (FirebaseUrl "https://a7knbwy6th8.firebaseio-demo.com/")
