@@ -1,17 +1,11 @@
 ﻿module ServerEventSourceTest
 
 open System.Collections.Generic
-open NUnit.Framework
+open Fuchu
 open FsUnit
 open FsFirebase.Utils
 open ServerEventSource
 open ServerEventSource.InnerProcessor
-
-let [<Test>] ``Check line interpretation algorithm``() =
-    interpretLine "" |> should equal BlankLine
-    interpretLine "event type" |> should equal (Field ("event type", ""))
-    interpretLine " : Comment!" |> should equal (EventSourceType.Comment "Comment!")
-    interpretLine "field: data" |> should equal (Field ("field", "data"))
 
 let testNetworkStream data (expected:EventSourceMessage list) =
     let output = ObservableSource.create()
@@ -24,64 +18,72 @@ let testNetworkStream data (expected:EventSourceMessage list) =
 
     let result = Seq.toList buffer
 
-    printfn "result = %A" result
     result |> should equal expected
 
-(* These following test data are from the example of Event Stream via http://www.w3.org/TR/eventsource/#concept-event-stream-reconnection-time
-*)
-let [<Test>] ``Fill network stream with pattern 1``() =
-    testNetworkStream 
-        """
-data: YHOO
-data: +2
-data: 10
-
-"""
-        [ ServerEvent ("", ["YHOO"; "+2"; "10"]) ]
-
-let [<Test>] ``Network stream #2`` () =
-    testNetworkStream
-        """: test stream
-
-data: first event
-id: 1
-
-data:second event
-id
-
-data:   third event"""
-        [ EventSourceMessage.Comment ["test stream"]
-          ServerEvent ("", ["first event"])
-          ServerEvent ("", ["second event"])
+[<Tests>]
+let tests =
+    testList "Server Event Source Test" [
+        testList "Line interpreter test" [
+            testCase "Blank string is BlankLine" <|
+                fun _ -> interpretLine "" |> should equal BlankLine
+            testCase "'event type' is becoming the Event Type field" <|
+                fun _ -> interpretLine "event type" |> should equal (Field ("event type", ""))
+            testCase "Comment has Comment Type" <|
+                fun _ -> interpretLine " : Comment!" |> should equal (EventSourceType.Comment "Comment!")
+            testCase "'field: data' format is put in Field properly" <|
+                fun _ -> interpretLine "field: data" |> should equal (Field ("field", "data"))
         ]
+        testList "Network stream test" [
+            (*
+             * These following test data are from the example of Event Stream via http://www.w3.org/TR/eventsource/#concept-event-stream-reconnection-time
+             *)
+            testCase "Fill network stream with pattern 1" <|
+                fun _ -> testNetworkStream "data: YHOO\n\
+                                            data: +2\n\
+                                            data: 10\n\
+                                            \n"
+                         <| [ ServerEvent ("", ["YHOO"; "+2"; "10"]) ]
 
-let [<Test>] ``Network stream #3`` () =
-    testNetworkStream
-        """data
+            testCase "Network stream #2" <|
+                fun _ -> testNetworkStream ": test stream\n\
+                                            \n\
+                                            data: first event\n\
+                                            id: 1\n\
+                                            \n\
+                                            data:second event\n\
+                                            id\n\
+                                            \n\
+                                            data:   third event"
+                         <| [ EventSourceMessage.Comment ["test stream"]
+                              ServerEvent ("", ["first event"])
+                              ServerEvent ("", ["second event"])
+                            ]
+                            
+            testCase "Network stream #3" <|
+                fun _ -> testNetworkStream "data\n\
+                                            \n\
+                                            data\n\
+                                            data\n\
+                                            \n\
+                                            data:"
+                         <| [ ServerEvent ("", [""])
+                              ServerEvent ("", [""; ""])
+                            ]
 
-data
-data
-
-data:"""
-        [ ServerEvent ("", [""])
-          ServerEvent ("", [""; ""])
+            testCase "Network stream #4: two identical events" <|
+                fun _ -> testNetworkStream "data:test\n\
+                                            \n\
+                                            data: test\n\
+                                            \n"
+                         <| [ ServerEvent ("", ["test"])
+                              ServerEvent ("", ["test"])
+                            ]
         ]
-
-let [<Test>] ``Network stream #4: two identical events`` () =
-    testNetworkStream
-        """data:test
-
-data: test
-
-"""
-        [ ServerEvent ("", ["test"])
-          ServerEvent ("", ["test"])
+        testList "Firebase Event test" [
+            testCase "Put Event" <|
+                fun _ -> testNetworkStream "event: put\n\
+                                            data: {\"path\": \"/\", \"data\": {\"a\": 1, \"b\": 2}}\n\
+                                            \n"
+                         <| [ ServerEvent ("put", ["""{"path": "/", "data": {"a": 1, "b": 2}}"""]) ]
         ]
-
-(* Test Firebase events *)
-let [<Test>] ``Put Event`` () =
-    testNetworkStream """event: put
-                         data: {"path": "/", "data": {"a": 1, "b": 2}}
-
-                         """
-                      [ ServerEvent ("put", ["""{"path": "/", "data": {"a": 1, "b": 2}}"""]) ]
+    ]
