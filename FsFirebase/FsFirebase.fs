@@ -114,34 +114,3 @@ let postAsync (url:FirebaseUrl) data = _requestAsync <| createRequestMessage (ur
 
 let deleteAsync (url:FirebaseUrl) = _requestAsync <| createRequestMessage (url, "DELETE", None)
 
-module FirebaseStream =
-    open System.Net
-    open System.Net.Http.Headers
-    open FsFirebase.Utils
-
-    type EventMessage = { Event:string
-                          Data:string
-                          LastEvent:string
-                          Retry:int
-                        }
-    type State =
-        | Connecting
-        | Open of EventMessage
-        | Closed of (HttpStatusCode * string) option   // as an error message
-
-    let createFrom (eventTracker:ObservableSource<State>) (url:FirebaseUrl) =
-        let failConnection (status, reason) =
-            eventTracker.Push <| Closed (Some (status, reason))
-            eventTracker.Complete()
-
-        eventTracker :> IObservable<State>
-        (*
-        eventSource.EventReceived
-        |> Observable.map (fun arg -> { Event       =arg.Message.EventType
-                                        Data        =arg.Message.Data
-                                        LastEvent   =arg.Message.LastEventId
-                                        Retry       =if arg.Message.Retry.HasValue
-                                                         then arg.Message.Retry.Value
-                                                         else 0
-                                      })
-                                      *)
