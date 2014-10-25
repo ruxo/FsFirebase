@@ -4,16 +4,16 @@ open System
 open System.Reflection
 open System.Runtime.InteropServices
 
-[<assembly: AssemblyTitle("FsFirebase")>]
-[<assembly: AssemblyDescription("Firebase REST API wrapper for F#")>]
+[<assembly: AssemblyTitle("F# Firebase Library")>]
+[<assembly: AssemblyDescription("Light weight simple REST client for Firebase in F#")>]
 [<assembly: AssemblyConfiguration("")>]
-[<assembly: AssemblyCompany("RZ")>]
+[<assembly: AssemblyCompany("Ruxo Zheng")>]
 [<assembly: AssemblyProduct("FsFirebase")>]
 [<assembly: AssemblyCopyright("Copyright ©  2014")>]
 [<assembly: AssemblyTrademark("")>]
 [<assembly: AssemblyCulture("")>]
-[<assembly: AssemblyVersion("1.0.0.0")>]
-[<assembly: AssemblyFileVersion("1.0.0.0")>]
+[<assembly: AssemblyVersion("0.9.0.0")>]
+[<assembly: AssemblyFileVersion("0.9.0.0")>]
 [<assembly: AssemblyDelaySign(false)>]
 
 [<assembly: CLSCompliant(false)>]
