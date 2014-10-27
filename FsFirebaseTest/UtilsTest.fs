@@ -32,6 +32,17 @@ let tests =
                 |> MutableList.get
                 |> should equal [1;2;4;5]
             }
+
+            test "Mutable list empty must not be shared!" {
+                let list1 = MutableList<int>.empty
+                let list2 = MutableList<int>.empty
+
+                ignore <| list1.Add 123
+                ignore <| list2.Add 321
+
+                list1.Value |> should equal [123]
+                list2.Value |> should equal [321]
+            }
         ]
         testList "Observable" [
             test "Make stream an observable" {
